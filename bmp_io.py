@@ -10,12 +10,10 @@ COLORS_IN_PALETTE = 0           # 0 defaults to 2^n
 NO_OF_IMPORTANT_COLORS = 0      # 0 signifies all colors are important
 HORIZONTAL_RESOLUTION = 2835    # pixels/meter
 VERTICAL_RESOLUTION = 2835      # pixels/meter
-
+TOTAL_HEADER_SIZE = 54          # Dib header size + file header size
 
 class BMPImageReader:
-    def __init__(self, width, height, pixel_array):
-        self.width = width
-        self.height = height
+    def __init__(self, pixel_array):
         self.pixel_array = pixel_array  # NumPy array of shape (height, width, 3) for BGR channels
 
     @staticmethod
@@ -43,7 +41,7 @@ class BMPImageReader:
             # Convert the list of rows into a NumPy array
             pixel_array = np.array(pixel_data, dtype=np.uint8)
 
-        return BMPImageReader(width, height, pixel_array)
+        return BMPImageReader(pixel_array)
 
     def get_pixel(self, x, y):
         """Get the pixel at (x, y) as a tuple of regular integers (B, G, R)."""
@@ -55,26 +53,29 @@ class BMPImageReader:
         self.pixel_array[y, x] = np.array(color, dtype=np.uint8)
 
     def display_info(self):
-        print(f"BMP Image Info: {self.width}x{self.height}, 24-bit color")
+        height, width, channels = self.pixel_array.shape
+        print(f"BMP Image Info: {width}x{height}, 24-bit color")
 
 
 class BMPImageWriter:
     @staticmethod
     def to_file(bmp_image, file_path):
         """Writes the BMPImageReader object back to a BMP file"""
+        height, width, channels = bmp_image.pixel_array.shape  # Dynamically get the shape
+
         with open(file_path, 'wb') as f:
             # Calculate padding
-            row_padded = (bmp_image.width * 3 + 3) & ~3
-            padded_row_size = row_padded * bmp_image.height
-            file_size = BMP_FILE_HEADER_SIZE + DIB_HEADER_SIZE + padded_row_size
+            row_padded = (width * 3 + 3) & ~3
+            padded_row_size = row_padded * height
+            file_size = TOTAL_HEADER_SIZE + padded_row_size
 
-            file_header = struct.pack('<2sIHHI', b'BM', file_size, 0, 0, 54)
+            file_header = struct.pack('<2sIHHI', b'BM', file_size, 0, 0, TOTAL_HEADER_SIZE)
             f.write(file_header)
 
             dib_header = struct.pack('<IIIHHIIIIII',
                                      DIB_HEADER_SIZE,
-                                     bmp_image.width,
-                                     bmp_image.height,
+                                     width,
+                                     height,
                                      NO_OF_COLOR_PLANES,
                                      BPP_VALUE,
                                      COMPRESSION_VALUE,
@@ -88,7 +89,7 @@ class BMPImageWriter:
             # Write pixel data (no need to reverse rows)
             for row in bmp_image.pixel_array:  # Write rows from top to bottom (as stored in the array)
                 f.write(row.tobytes())  # Write row as bytes
-                f.write(b'\x00' * (row_padded - bmp_image.width * 3))  # Add padding to the row
+                f.write(b'\x00' * (row_padded - width * 3))  # Add padding to the row
 
         print(f"BMP image saved as {file_path}")
 
