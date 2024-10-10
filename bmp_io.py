@@ -59,6 +59,8 @@ class BMPImageReader:
 
 class BMPImageWriter:
     @staticmethod
+    def arr_to_file(np_array, file_path):
+        BMPImageWriter.to_file(BMPImageReader(np_array), file_path)
     def to_file(bmp_image, file_path):
         """Writes the BMPImageReader object back to a BMP file"""
         height, width, channels = bmp_image.pixel_array.shape  # Dynamically get the shape

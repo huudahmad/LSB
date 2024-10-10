@@ -1,5 +1,5 @@
-from PIL import Image
-import numpy as np
+from bmp_io import BMPImageReader as ImRead
+from bmp_io import BMPImageWriter as ImWrite
 
 def read_LSB(img):
     count = 0
@@ -40,13 +40,9 @@ def write_LSB(img, data):
                     break
 
 
-image = np.array(Image.open('new.bmp'))
+image = ImRead.from_file("new.bmp").pixel_array
 img = np.copy(image)
-read_LSB(img)
 write_LSB(img, "Hello world!")
-print(type(img[0,0,0]))
-
-
-
-            
-Image.fromarray(img).save("new.bmp")
+ImWrite.arr_to_file(img, "new.bmp")
+img = ImRead.from_file("new.bmp").pixel_array
+read_LSB(img)
